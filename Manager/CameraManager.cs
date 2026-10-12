@@ -7,7 +7,11 @@ public class CameraManager : ManagerBase
     const float FollowSmoothTime = 0.3f;
     const float ConfineSkin = 0.001f;
 
+    [SerializeField] Vector2 margin;
+
     Camera view;
+    Vector3 anchor;
+    bool hasAnchor;
     bool missingLogged;
     bool wallChecked;
     ContactFilter2D wallFilter;
@@ -36,7 +40,17 @@ public class CameraManager : ManagerBase
             return;
 
         Vector3 position = view.transform.position;
-        Vector3 goal = DeadZoneGoal(position, player.transform.position);
+        Vector3 playerPosition = player.transform.position;
+        if (!hasAnchor)
+            anchor = playerPosition;
+
+        anchor = DeadZoneGoal(anchor, playerPosition);
+        hasAnchor = true;
+
+        Vector3 goal = anchor;
+        goal.x += margin.x;
+        goal.y += margin.y;
+        goal.z = position.z;
         goal = Confine(goal, position, false);
         Vector3 next = Vector3.SmoothDamp(position, goal, ref followVelocity, FollowSmoothTime);
         next.z = position.z;
@@ -135,9 +149,12 @@ public class CameraManager : ManagerBase
 
     void SnapTo(Vector3 target)
     {
+        anchor = target;
+        hasAnchor = true;
+
         Vector3 position = view.transform.position;
-        position.x = target.x;
-        position.y = target.y;
+        position.x = target.x + margin.x;
+        position.y = target.y + margin.y;
         position = Confine(position, position, false);
         view.transform.position = position;
     }

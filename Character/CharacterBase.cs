@@ -11,11 +11,51 @@ public class CharacterBase : MonoBehaviour
 
     Rigidbody2D body;
     readonly ContactPoint2D[] contacts = new ContactPoint2D[6];
+    readonly CharacterStateMachine states = new CharacterStateMachine();
+    float intentMoveX;
+    bool intentJump;
 
     public int MaxHp => maxHp;
     public int Hp { get; private set; }
     public int Attack => attack;
     public float MoveSpeed => moveSpeed;
+    public float IntentMoveX => intentMoveX;
+    public float VerticalSpeed => body != null ? body.linearVelocity.y : 0f;
+    public CharacterState CurrentState => states.Current;
+
+    public void SetIntent(float moveX, bool jumpPressed)
+    {
+        intentMoveX = moveX;
+        if (jumpPressed)
+            intentJump = true;
+    }
+
+    public bool ConsumeJumpIntent()
+    {
+        if (!intentJump)
+            return false;
+
+        intentJump = false;
+        return true;
+    }
+
+    public void ChangeState(CharacterState next)
+    {
+        states.Change(next, this);
+    }
+
+    protected void Update()
+    {
+        states.Tick();
+    }
+
+    protected void FixedUpdate()
+    {
+        CharacterState before = states.Current;
+        states.FixedTick();
+        if (states.Current != before)
+            states.FixedTick();
+    }
 
     void Reset()
     {
@@ -40,6 +80,11 @@ public class CharacterBase : MonoBehaviour
     {
         body = GetComponent<Rigidbody2D>();
         Hp = maxHp;
+
+        CharacterAirState air = new CharacterAirState();
+        CharacterGroundState ground = new CharacterGroundState(air);
+        air.BindGround(ground);
+        ChangeState(ground);
     }
 
     public void Apply(CharacterData data)
@@ -73,7 +118,7 @@ public class CharacterBase : MonoBehaviour
         body.linearVelocity = velocity;
     }
 
-    bool Grounded()
+    public bool Grounded()
     {
         if (body == null)
             return false;
