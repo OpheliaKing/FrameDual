@@ -16,7 +16,7 @@ public class UIManager : ManagerBase
         else if (ui.Type == UIType.Popup)
             OpenPopup(ui);
         else
-            Debug.LogWarning("None 타입 UI는 아직 스택에 넣지 않아.");
+            Show(ui);
     }
 
     public void Close()

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
@@ -9,17 +10,27 @@ public enum InputRoute
     UI
 }
 
+public struct InputFrame
+{
+    public InputRoute Route;
+    public Vector2 Move;
+    public bool JumpPressed;
+    public bool AttackPressed;
+}
+
 [DefaultExecutionOrder(-100)]
 public class InputManager : ManagerBase
 {
-    [SerializeField] InputActionAsset actions;
     [SerializeField] InputSystemUIInputModule uiModule;
 
+    InputActionAsset actions;
     InputActionMap playerMap;
     InputActionMap uiMap;
     InputAction move;
     InputAction jump;
     InputAction attack;
+    InputAction sprint;
+    InputAction rightClick;
     bool ready;
 
     public InputRoute Route { get; private set; } = InputRoute.Player;
@@ -27,12 +38,23 @@ public class InputManager : ManagerBase
     public float MoveX => Move.x;
     public bool JumpPressed { get; private set; }
     public bool AttackPressed { get; private set; }
+    public bool MoveEnabled => move != null && move.enabled;
+    public bool JumpEnabled => jump != null && jump.enabled;
+    public bool AttackEnabled => attack != null && attack.enabled;
+    public bool SprintEnabled => sprint != null && sprint.enabled;
+    public bool JumpHeld => jump != null && jump.IsPressed();
+    public bool AttackHeld => attack != null && attack.IsPressed();
+    public bool SprintHeld => sprint != null && sprint.IsPressed();
+    public bool RightClickHeld => rightClick != null && rightClick.IsPressed();
+
+    public event Action<InputFrame> InputChanged;
 
     void Awake()
     {
+        actions = InputSystem.actions;
         if (actions == null)
         {
-            Debug.LogError("InputManager에 Input Action Asset을 넣어.");
+            Debug.LogError("Input Action Asset 없음.");
             return;
         }
 
@@ -41,6 +63,8 @@ public class InputManager : ManagerBase
         move = playerMap.FindAction("Move", true);
         jump = playerMap.FindAction("Jump", true);
         attack = playerMap.FindAction("Attack", true);
+        sprint = playerMap.FindAction("Sprint", false);
+        rightClick = uiMap.FindAction("RightClick", false);
     }
 
     void Start()
@@ -61,14 +85,26 @@ public class InputManager : ManagerBase
     void Update()
     {
         if (Route != InputRoute.Player || move == null)
-        {
             ClearPlayerInput();
-            return;
+        else
+        {
+            Move = move.ReadValue<Vector2>();
+            JumpPressed = jump.WasPressedThisFrame();
+            AttackPressed = attack.WasPressedThisFrame();
         }
 
-        Move = move.ReadValue<Vector2>();
-        JumpPressed = jump.WasPressedThisFrame();
-        AttackPressed = attack.WasPressedThisFrame();
+        InputChanged?.Invoke(Capture());
+    }
+
+    InputFrame Capture()
+    {
+        return new InputFrame
+        {
+            Route = Route,
+            Move = Move,
+            JumpPressed = JumpPressed,
+            AttackPressed = AttackPressed
+        };
     }
 
     public void SetRoute(InputRoute route)
@@ -91,6 +127,7 @@ public class InputManager : ManagerBase
         SetAction(move, playerOn);
         SetAction(jump, playerOn);
         SetAction(attack, playerOn);
+        SetAction(sprint, false);
 
         if (!uiOn && uiMap != null)
             uiMap.Disable();
@@ -99,6 +136,8 @@ public class InputManager : ManagerBase
             uiModule.enabled = uiOn;
         else if (uiOn && uiMap != null)
             uiMap.Enable();
+
+        SetAction(rightClick, playerOn || uiOn);
 
         if (!playerOn)
             ClearPlayerInput();

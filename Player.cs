@@ -1,14 +1,36 @@
 using UnityEngine;
 
-[RequireComponent(typeof(PlayerInputReader))]
-public class Player : MonoBehaviour
+public class Player : CharacterBase
 {
-    PlayerInputReader input;
+    float moveX;
+    bool jump;
 
-    public PlayerInputReader Input => input;
-
-    void Awake()
+    void Update()
     {
-        input = GetComponent<PlayerInputReader>();
+        ReadInput();
+    }
+
+    void ReadInput()
+    {
+        if (GameManager.Instance == null)
+        {
+            moveX = 0f;
+            return;
+        }
+
+        InputManager input = GameManager.Instance.Input;
+        moveX = input != null ? input.MoveX : 0f;
+        if (input != null && input.JumpPressed)
+            jump = true;
+    }
+
+    void FixedUpdate()
+    {
+        Move(moveX);
+        if (!jump)
+            return;
+
+        Jump();
+        jump = false;
     }
 }

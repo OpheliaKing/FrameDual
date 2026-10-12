@@ -27,7 +27,7 @@ public class ResourceManager : ManagerBase
         Addressables.InitializeAsync().Completed += handle =>
         {
             if (handle.Status != AsyncOperationStatus.Succeeded)
-                Debug.LogError("어드레서블 초기화에 실패했어.");
+                Debug.LogError("어드레서블 초기화 실패.");
         };
     }
 
@@ -126,7 +126,7 @@ public class ResourceManager : ManagerBase
             return;
 
         if (asset == null)
-            Debug.LogError("어드레서블을 못 불러왔어. " + address);
+            Debug.LogError("어드레서블 로드 실패. " + address);
 
         for (int i = 0; i < entry.Slots.Count; i++)
         {

@@ -13,9 +13,20 @@ public abstract class ManagerBase : MonoBehaviour
         if (owner != null)
             current = owner.GetComponentInChildren<T>(true);
 
-        if (current == null && missing.Add(typeof(T)))
-            Debug.LogError(typeof(T).Name + "가 GameManager 아래에 없어.");
+        if (current != null)
+            return current;
 
+        if (owner == null)
+        {
+            if (missing.Add(typeof(T)))
+                Debug.LogError(typeof(T).Name + " 생성 실패. 상위 객체 없음.");
+
+            return null;
+        }
+
+        GameObject child = new GameObject(typeof(T).Name);
+        child.transform.SetParent(owner.transform, false);
+        current = child.AddComponent<T>();
         return current;
     }
 }
